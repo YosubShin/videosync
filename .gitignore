@@ -1,0 +1,12 @@
+#training logs
+log
+
+# Python
+__pycache__/
+.ipynb_checkpoints/
+
+# macOS-specific files
+.DS_Store
+
+# Emacs
+*~

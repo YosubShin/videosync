@@ -9,7 +9,8 @@ def get_similarity(view1, view2):
     norm2 = torch.sum(torch.square(view2), dim=1)
     norm2 = norm2.reshape(1, -1)
 
-    similarity = norm1 + norm2 - 2.0 * torch.matmul(view1, view2.transpose(1, 0))
+    similarity = norm1 + norm2 - 2.0 * \
+        torch.matmul(view1, view2.transpose(1, 0))
     similarity = -1.0 * torch.maximum(similarity, torch.zeros(1).cuda())
 
     return similarity
@@ -73,15 +74,16 @@ class Losses(nn.Module):
         super(Losses, self).__init__()
 
     def forward(self, view1, view2):
-        sim_21, labels_21, softmaxed_sim_12, labels_12 = synchronization_sequences(view2[0], view1[0])
+        sim_21, labels_21, softmaxed_sim_12, labels_12 = synchronization_sequences(
+            view2[0], view1[0])
 
-        identity = identity(sim_21, labels_21)
+        identity_val = identity(sim_21, labels_21)
 
-        deviation = deviation(sim_21, labels_21)
+        deviation_val = deviation(sim_21, labels_21)
 
-        interval = interval(sim_21, labels_21)
+        interval_val = interval(sim_21, labels_21)
 
         # loss = identity + 0.5 * deviation + 0.035 * interval  # ntu
-        loss = identity + 0.7 * deviation + 0.015 * interval  # cmu
+        loss = identity_val + 0.7 * deviation_val + 0.015 * interval_val  # cmu
 
         return loss

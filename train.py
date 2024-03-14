@@ -7,6 +7,7 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 import datetime as time
 import config_test
+import wandb
 
 opt = config_test.config()
 
@@ -31,7 +32,8 @@ def weights_init(model):
 
 
 def save_log(file, epoch_i, epoch_loss):
-    log_line = 'Training epoch [' + str(epoch_i).zfill(3) + '], loss = ' + str(epoch_loss) + '\n'
+    log_line = 'Training epoch [' + \
+        str(epoch_i).zfill(3) + '], loss = ' + str(epoch_loss) + '\n'
     file.write(log_line)
     file.flush()
 
@@ -63,7 +65,8 @@ def train():
                                   drop_last=True,
                                   pin_memory=True)
 
-    model = Adjusted_GCN(opt.in_channels, opt.layout, opt.strategy, opt.edge_importance_weighting)
+    model = Adjusted_GCN(opt.in_channels, opt.layout,
+                         opt.strategy, opt.edge_importance_weighting)
     model.apply(weights_init)
     model = model.cuda()
     model.train()
@@ -78,11 +81,22 @@ def train():
     log_var_c.requires_grad = True
     log_var_d.requires_grad = True
 
-    params = ([p for p in model.parameters()] + [log_var_a] + [log_var_b] + [log_var_c] + [log_var_d])
+    params = ([p for p in model.parameters()] + [log_var_a] +
+              [log_var_b] + [log_var_c] + [log_var_d])
 
-    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
+    optimizer = torch.optim.SGD(
+        params, lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
 
     self_loss = Losses()
+
+    # start a new wandb run to track this script
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="videosync",
+
+        # track hyperparameters and run metadata
+        config=opt
+    )
 
     start = time.datetime.now()
 
@@ -114,6 +128,11 @@ def train():
             loss.backward()
             optimizer.step()
 
+        wandb.log({
+            "epoch": epoch_i,
+            "loss": epoch_loss
+        })
+
         print('Training epoch {0}, loss = {1}'.format(epoch_i, epoch_loss))
 
         loss_list.append(epoch_loss)
@@ -129,6 +148,8 @@ def train():
     print('Spend time：', cost)
 
     file.close()
+
+    wandb.finish()
 
 
 if __name__ == '__main__':

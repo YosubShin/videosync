@@ -12,24 +12,24 @@ class config:
         self.seed = 1
 
         # dataset
-        self.dataset_name = 'CMU' # Dataset name：CMU or NTU
+        self.dataset_name = 'CMU'  # Dataset name：CMU or NTU
 
         # train
-        self.train_dataset = 'path to training dataset'
+        self.train_dataset = '/home/yosubs/videosync/datasets/nturgbd/CMU-SYN/pose/train'
         self.num_track = 1
         self.num_keypoints = 17
         self.train_batchsize = 1
 
         # test
-        self.test_dataset = 'path to testing dataset'
+        self.test_dataset = '/home/yosubs/videosync/datasets/nturgbd/CMU-SYN/pose/test'
         self.test_batchsize = 1
         self.resume = True
 
         # model
-        self.checkpoint_path = 'path to model'  
+        self.checkpoint_path = 'path to model'
 
         # others
-        self.work_dir = 'path to log'
+        self.work_dir = '/home/yosubs/videosync/related_work/SeSyn-Net/log'
         self.max_epochs = 400
         self.save_fre = 1
         self.workers = 3

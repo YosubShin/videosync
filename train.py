@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 import datetime as time
 import config_test
 import wandb
+from test import test
 
 opt = config_test.config()
 
@@ -141,6 +142,11 @@ def train():
 
         if epoch_i % opt.save_fre == 0:
             save_model(epoch_i, epoch_loss, optimizer, model)
+
+        if epoch_i % 10 == 0:
+            pth_name = str(epoch_i).zfill(3) + '.pth'
+            checkpoint_path = os.path.join(opt.work_dir, 'train', pth_name)
+            test(checkpoint_path)
 
     end = time.datetime.now()
 

@@ -1,3 +1,4 @@
+import os
 import torch
 from dataloader.data_pipeline import DataPipeline
 from network.adjusted_stgcn import Adjusted_GCN
@@ -7,6 +8,7 @@ import datetime as time
 from matching import corresponding
 from tqdm import tqdm
 import config_test
+import wandb
 
 opt = config_test.config()
 
@@ -16,7 +18,7 @@ torch.backends.cudnn.deterministic = True
 torch.manual_seed(opt.seed)
 
 
-def test():
+def test(checkpoint_path):
     test_dataset = DataPipeline(opt.test_dataset)
 
     test_dataloader = DataLoader(dataset=test_dataset,
@@ -27,9 +29,10 @@ def test():
 
     length = len(test_dataset)
 
-    checkpoint = torch.load(opt.checkpoint_path)
+    checkpoint = torch.load(checkpoint_path)
 
-    model = Adjusted_GCN(opt.in_channels, opt.layout, opt.strategy, opt.edge_importance_weighting)
+    model = Adjusted_GCN(opt.in_channels, opt.layout,
+                         opt.strategy, opt.edge_importance_weighting)
     model.load_state_dict(checkpoint['model'])
     model = model.cuda()
     model.eval()
@@ -110,17 +113,38 @@ def test():
     rate_30 = rate_30 / (length - number)
     rate_50 = rate_50 / (length - number)
 
-    print('Abs_error:', abs_error, 'Rank_1:', rank_1, 'Rank_5:', rank_5, 'Rank_10:', rank_10)
-    print('Relative_error:', relative_error, 'Rate_10:', rate_10, 'Rate_30:', rate_30, 'Rate_50:', rate_50)
+    wandb.log({
+        'abs_error': abs_error,
+        'rank_1': rank_1,
+        'rank_5': rank_5,
+        'rank_10': rank_10
+    })
+    wandb.log({
+        'relative_error': relative_error,
+        'rate_10': rate_10,
+        'rate_30': rate_30,
+        'rate_50': rate_50,
+    })
+
+    print('Abs_error:', abs_error, 'Rank_1:', rank_1,
+          'Rank_5:', rank_5, 'Rank_10:', rank_10)
+    print('Relative_error:', relative_error, 'Rate_10:',
+          rate_10, 'Rate_30:', rate_30, 'Rate_50:', rate_50)
 
     return abs_error
 
 
 if __name__ == '__main__':
-    start = time.datetime.now()
+    for i in range(0, 400):
+        print(f'epoch {i:03d}')
 
-    accuracy = test()
-    print('Accuracy', accuracy)
+        start = time.datetime.now()
 
-    end = time.datetime.now()
-    print('Spent time: ', end - start)
+        pth_name = str(i).zfill(3) + '.pth'
+        checkpoint_path = os.path.join(opt.work_dir, 'train', pth_name)
+
+        accuracy = test(checkpoint_path)
+        print('Accuracy', accuracy)
+
+        end = time.datetime.now()
+        print('Spent time: ', end - start)

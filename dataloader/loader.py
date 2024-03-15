@@ -14,20 +14,20 @@ class SkeletonLoader(torch.utils.data.Dataset):
         self.num_track = num_track
         self.num_keypoints = num_keypoints
         self.files = [
-                         os.path.join(self.data_dir, f) for f in os.listdir(self.data_dir)
-                     ]
+            os.path.join(self.data_dir, f) for f in os.listdir(self.data_dir)
+        ]
 
         self.view1 = []
         self.view2 = []
 
-        if opt.dataset_name == 'NTU':
+        if opt.dataset_name == 'NTU-SYN':
             for file in self.files:
                 if 'C001' in file:
                     self.view1.append(file)
                 if 'C002' in file:
                     self.view2.append(file)
 
-        if opt.dataset_name == 'CMU':
+        if opt.dataset_name == 'CMU-SYN':
             for file in self.files:
                 if 'C11' in file:
                     self.view1.append(file)
@@ -66,7 +66,8 @@ class SkeletonLoader(torch.utils.data.Dataset):
             frame_index = a['frame_index']
 
             if person_id < self.num_track and frame_index < num_frame:
-                data['data'][:, :, frame_index, person_id] = np.array(a['keypoints']).transpose()
+                data['data'][:, :, frame_index, person_id] = np.array(
+                    a['keypoints']).transpose()
 
         with open(self.view2[index]) as f1:
             data1 = json.load(f1)
@@ -92,8 +93,7 @@ class SkeletonLoader(torch.utils.data.Dataset):
             frame_index1 = a1['frame_index']
 
             if person_id1 < self.num_track and frame_index1 < num_frame1:
-                data1['data'][:, :, frame_index1, person_id1] = np.array(a1['keypoints']).transpose()
+                data1['data'][:, :, frame_index1, person_id1] = np.array(
+                    a1['keypoints']).transpose()
 
         return data, data1
-
-

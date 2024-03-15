@@ -57,7 +57,11 @@ def train():
     log_name = os.path.join(opt.work_dir, 'train', 'log.txt')
     file = open(log_name, 'w')
 
-    train_dataset = DataPipeline(opt.train_dataset)
+    train_dataset_path = opt.train_dataset.format_map({
+        'dataset_name': opt.dataset_name
+    })
+
+    train_dataset = DataPipeline(train_dataset_path)
 
     train_dataloader = DataLoader(dataset=train_dataset,
                                   batch_size=opt.train_batchsize,
@@ -88,7 +92,7 @@ def train():
     optimizer = torch.optim.SGD(
         params, lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
 
-    self_loss = Losses()
+    self_loss = Losses(opt)
 
     # start a new wandb run to track this script
     wandb.init(

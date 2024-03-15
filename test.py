@@ -19,7 +19,10 @@ torch.manual_seed(opt.seed)
 
 
 def test(checkpoint_path):
-    test_dataset = DataPipeline(opt.test_dataset)
+    test_dataset_path = opt.test_dataset.format_map({
+        'dataset_name': opt.dataset_name
+    })
+    test_dataset = DataPipeline(test_dataset_path)
 
     test_dataloader = DataLoader(dataset=test_dataset,
                                  batch_size=opt.test_batchsize,

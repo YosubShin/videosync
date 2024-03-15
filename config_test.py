@@ -12,16 +12,16 @@ class config:
         self.seed = 1
 
         # dataset
-        self.dataset_name = 'NTU'  # Dataset name：CMU or NTU
+        self.dataset_name = 'NTU-SYN'  # Dataset name：CMU-SYN or NTU-SYN
 
         # train
-        self.train_dataset = '/home/yosubs/videosync/datasets/nturgbd/NTU-SYN/pose/train'
+        self.train_dataset = '/home/yosubs/videosync/datasets/nturgbd/{dataset_name}/pose/train'
         self.num_track = 1
         self.num_keypoints = 17
         self.train_batchsize = 1
 
         # test
-        self.test_dataset = '/home/yosubs/videosync/datasets/nturgbd/NTU-SYN/pose/test'
+        self.test_dataset = '/home/yosubs/videosync/datasets/nturgbd/{dataset_name}/pose/test'
         self.test_batchsize = 1
         self.resume = True
 

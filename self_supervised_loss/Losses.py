@@ -83,7 +83,7 @@ class Losses(nn.Module):
 
         interval_val = interval(sim_21, labels_21)
 
-        # loss = identity + 0.5 * deviation + 0.035 * interval  # ntu
-        loss = identity_val + 0.7 * deviation_val + 0.015 * interval_val  # cmu
+        loss = identity_val + 0.5 * deviation_val + 0.035 * interval_val  # ntu
+        # loss = identity_val + 0.7 * deviation_val + 0.015 * interval_val  # cmu
 
         return loss

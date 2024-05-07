@@ -15,7 +15,7 @@ def get_similarity(view1, view2):
     norm2 = torch.sum(torch.square(view2), dim=1)
     norm2 = norm2.reshape(1, -1)
     similarity = norm1 + norm2 - 2.0 * torch.matmul(view1, view2.transpose(1, 0))
-    similarity = -1.0 * torch.maximum(similarity, torch.zeros(1).cuda())
+    similarity = -1.0 * torch.max(similarity, torch.zeros(1).cuda())
 
     return similarity
 

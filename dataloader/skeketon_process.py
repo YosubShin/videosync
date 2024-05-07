@@ -42,7 +42,7 @@ def transpose(data, order, key='data'):
 
 def to_tuple(data, keys=None):
     if keys is None:
-        keys = ['data', 'category_id']
+        keys = ['data', 'category_id', 'info']
     return tuple([data[k] for k in keys])
 
 

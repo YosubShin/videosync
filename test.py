@@ -9,6 +9,7 @@ from matching import corresponding
 from tqdm import tqdm
 import config_test
 import wandb
+import numpy as np
 
 opt = config_test.config()
 
@@ -59,8 +60,8 @@ def test(checkpoint_path):
     for batch_i, batch_data in enumerate(tqdm(test_dataloader)):
         view1, view2 = batch_data
 
-        data1, label1 = view1
-        data2, label2 = view2
+        data1, label1, info1 = view1
+        data2, label2, info2 = view2
 
         data1 = data1.cuda()
         data2 = data2.cuda()
@@ -73,7 +74,11 @@ def test(checkpoint_path):
         output1 = model(data1)
         output2 = model(data2)
 
-        frames = corresponding(output1, output2, label)
+        print('info1["video_name"]', info1['video_name'], 'label1', label1)
+        print('info2["video_name"]', info2['video_name'], 'label2', label2)
+
+        frames = corresponding(output1, output2, label).cpu()
+        print('frames', frames)
 
         res.append(frames)
 
@@ -95,7 +100,7 @@ def test(checkpoint_path):
             number = number + 1
             continue
 
-        relative_rate = frames / GT
+        relative_rate = frames // GT
 
         if relative_rate <= 0.1:
             rate_10 = rate_10 + 1
@@ -107,6 +112,7 @@ def test(checkpoint_path):
     res.sort()
 
     abs_error = abs_error / length
+    abs_error_std = np.std(res)
     rank_1 = rank_1 / length
     rank_5 = rank_5 / length
     rank_10 = rank_10 / length
@@ -118,6 +124,7 @@ def test(checkpoint_path):
 
     wandb.log({
         'abs_error': abs_error,
+        'abs_error_std': abs_error_std,
         'rank_1': rank_1,
         'rank_5': rank_5,
         'rank_10': rank_10
@@ -129,7 +136,7 @@ def test(checkpoint_path):
         'rate_50': rate_50,
     })
 
-    print('Abs_error:', abs_error, 'Rank_1:', rank_1,
+    print('Abs_error:', abs_error, 'Abs_error_std', abs_error_std, 'Rank_1:', rank_1,
           'Rank_5:', rank_5, 'Rank_10:', rank_10)
     print('Relative_error:', relative_error, 'Rate_10:',
           rate_10, 'Rate_30:', rate_30, 'Rate_50:', rate_50)
@@ -138,16 +145,29 @@ def test(checkpoint_path):
 
 
 if __name__ == '__main__':
-    for i in range(0, 400):
-        print(f'epoch {i:03d}')
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="videosync",
 
-        start = time.datetime.now()
+        # track hyperparameters and run metadata
+        config=opt
+    )
+    checkpoint_path = os.path.join('./model/ntu_syn.pth')
+    accuracy = test(checkpoint_path)
+    print('Accuracy', accuracy)
 
-        pth_name = str(i).zfill(3) + '.pth'
-        checkpoint_path = os.path.join(opt.work_dir, 'train', pth_name)
+    wandb.finish()
 
-        accuracy = test(checkpoint_path)
-        print('Accuracy', accuracy)
+    # for i in range(0, 400):
+    #     print(f'epoch {i:03d}')
 
-        end = time.datetime.now()
-        print('Spent time: ', end - start)
+    #     start = time.datetime.now()
+
+    #     pth_name = str(i).zfill(3) + '.pth'
+    #     checkpoint_path = os.path.join(opt.work_dir, 'train', pth_name)
+
+    #     accuracy = test(checkpoint_path)
+    #     print('Accuracy', accuracy)
+
+    #     end = time.datetime.now()
+    #     print('Spent time: ', end - start)

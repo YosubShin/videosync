@@ -77,7 +77,7 @@ def test(checkpoint_path):
         print('info1["video_name"]', info1['video_name'], 'label1', label1)
         print('info2["video_name"]', info2['video_name'], 'label2', label2)
 
-        frames = corresponding(output1, output2, label).cpu()
+        frames = corresponding(output1, output2, label, info1['video_name'], info2['video_name']).cpu()
         print('frames', frames)
 
         res.append(frames)

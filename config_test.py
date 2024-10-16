@@ -15,13 +15,13 @@ class config:
         self.dataset_name = 'NTU-SYN'  # Dataset name：CMU-SYN or NTU-SYN
 
         # train
-        self.train_dataset = '/home/yosubs/videosync/datasets/nturgbd/{dataset_name}/pose/train'
+        self.train_dataset = '/data/ntu/{dataset_name}/pose/train'
         self.num_track = 1
         self.num_keypoints = 17
         self.train_batchsize = 1
 
         # test
-        self.test_dataset = '/home/yosubs/videosync/datasets/nturgbd/{dataset_name}/pose/test'
+        self.test_dataset = '/data/ntu/{dataset_name}/pose/test'
         self.test_batchsize = 1
         self.resume = True
 
@@ -29,7 +29,7 @@ class config:
         self.checkpoint_path = 'path to model'
 
         # others
-        self.work_dir = '/home/yosubs/videosync/videosync/log'
+        self.work_dir = '/tmp/videosync/log'
         self.max_epochs = 400
         self.save_fre = 1
         self.workers = 3

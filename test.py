@@ -41,19 +41,18 @@ def test(checkpoint_path):
     model = model.cuda()
     model.eval()
 
-    res = []
-
-    abs_error = 0
-    rank_1 = 0
-    rank_5 = 0
-    rank_10 = 0
-
-    relative_error_1 = 0
-    relative_error_2 = 0
-
-    rate_10 = 0
-    rate_30 = 0
-    rate_50 = 0
+    metrics = {
+        "median": {
+            'abs_error': 0, 'rank_1': 0, 'rank_5': 0, 'rank_10': 0,
+            'relative_error_1': 0, 'relative_error_2': 0,
+            'rate_10': 0, 'rate_30': 0, 'rate_50': 0, 'res': []
+        },
+        "dtw": {
+            'abs_error': 0, 'rank_1': 0, 'rank_5': 0, 'rank_10': 0,
+            'relative_error_1': 0, 'relative_error_2': 0,
+            'rate_10': 0, 'rate_30': 0, 'rate_50': 0, 'res': []
+        }
+    }
 
     number = 0
 
@@ -74,74 +73,81 @@ def test(checkpoint_path):
         output1 = model(data1)
         output2 = model(data2)
 
-        print('info1["video_name"]', info1['video_name'], 'label1', label1)
-        print('info2["video_name"]', info2['video_name'], 'label2', label2)
+        frames_dict = corresponding(output1, output2, label, info1['video_name'], info2['video_name'])
 
-        frames = corresponding(output1, output2, label, info1['video_name'], info2['video_name']).cpu()
-        print('frames', frames)
+        for method, frames in frames_dict.items():
+            frames = frames.item()
+            metrics[method]['res'].append(frames)
 
-        res.append(frames)
+            # Absolute error
+            metrics[method]['abs_error'] += frames
 
-        abs_error = abs_error + frames.item()
+            # Ranking metrics
+            if frames <= 1.0:
+                metrics[method]['rank_1'] += 1
+            if frames <= 5.0:
+                metrics[method]['rank_5'] += 1
+            if frames <= 10.0:
+                metrics[method]['rank_10'] += 1
 
-        if frames <= 1.0:
-            rank_1 = rank_1 + 1
-        if frames <= 5.0:
-            rank_5 = rank_5 + 1
-        if frames <= 10.0:
-            rank_10 = rank_10 + 1
+            # Ground Truth
+            GT = abs(label.item())
 
-        GT = abs(label.item())
+            # Relative error
+            metrics[method]['relative_error_1'] += frames
+            metrics[method]['relative_error_2'] += GT
 
-        relative_error_1 = relative_error_1 + frames.item()
-        relative_error_2 = relative_error_2 + GT
+            if GT == 0:
+                number += 1
+                continue
 
-        if GT == 0:
-            number = number + 1
-            continue
+            # Rate metrics
+            relative_rate = frames / GT
+            if relative_rate <= 0.1:
+                metrics[method]['rate_10'] += 1
+            if relative_rate <= 0.3:
+                metrics[method]['rate_30'] += 1
+            if relative_rate <= 0.5:
+                metrics[method]['rate_50'] += 1
 
-        relative_rate = frames // GT
+    # Calculate final metrics for each method
+    for method, method_metrics in metrics.items():
+        method_metrics['res'].sort()
 
-        if relative_rate <= 0.1:
-            rate_10 = rate_10 + 1
-        if relative_rate <= 0.3:
-            rate_30 = rate_30 + 1
-        if relative_rate <= 0.5:
-            rate_50 = rate_50 + 1
+        method_metrics['abs_error'] /= length
+        method_metrics['abs_error_std'] = np.std(method_metrics['res'])
+        method_metrics['rank_1'] /= length
+        method_metrics['rank_5'] /= length
+        method_metrics['rank_10'] /= length
 
-    res.sort()
+        method_metrics['relative_error'] = method_metrics['relative_error_1'] / method_metrics['relative_error_2']
+        valid_length = length - number
+        method_metrics['rate_10'] /= valid_length
+        method_metrics['rate_30'] /= valid_length
+        method_metrics['rate_50'] /= valid_length
 
-    abs_error = abs_error / length
-    abs_error_std = np.std(res)
-    rank_1 = rank_1 / length
-    rank_5 = rank_5 / length
-    rank_10 = rank_10 / length
+        # Log metrics
+        wandb.log({
+            f'{method}/abs_error': method_metrics['abs_error'],
+            f'{method}/abs_error_std': method_metrics['abs_error_std'],
+            f'{method}/rank_1': method_metrics['rank_1'],
+            f'{method}/rank_5': method_metrics['rank_5'],
+            f'{method}/rank_10': method_metrics['rank_10'],
+            f'{method}/relative_error': method_metrics['relative_error'],
+            f'{method}/rate_10': method_metrics['rate_10'],
+            f'{method}/rate_30': method_metrics['rate_30'],
+            f'{method}/rate_50': method_metrics['rate_50'],
+        })
 
-    relative_error = relative_error_1 / relative_error_2
-    rate_10 = rate_10 / (length - number)
-    rate_30 = rate_30 / (length - number)
-    rate_50 = rate_50 / (length - number)
+        # Print metrics
+        print(f'Method: {method}')
+        print(f'Abs_error: {method_metrics["abs_error"]}, Abs_error_std: {method_metrics["abs_error_std"]}, '
+              f'Rank_1: {method_metrics["rank_1"]}, Rank_5: {method_metrics["rank_5"]}, '
+              f'Rank_10: {method_metrics["rank_10"]}')
+        print(f'Relative_error: {method_metrics["relative_error"]}, Rate_10: {method_metrics["rate_10"]}, '
+              f'Rate_30: {method_metrics["rate_30"]}, Rate_50: {method_metrics["rate_50"]}')
 
-    wandb.log({
-        'abs_error': abs_error,
-        'abs_error_std': abs_error_std,
-        'rank_1': rank_1,
-        'rank_5': rank_5,
-        'rank_10': rank_10
-    })
-    wandb.log({
-        'relative_error': relative_error,
-        'rate_10': rate_10,
-        'rate_30': rate_30,
-        'rate_50': rate_50,
-    })
-
-    print('Abs_error:', abs_error, 'Abs_error_std', abs_error_std, 'Rank_1:', rank_1,
-          'Rank_5:', rank_5, 'Rank_10:', rank_10)
-    print('Relative_error:', relative_error, 'Rate_10:',
-          rate_10, 'Rate_30:', rate_30, 'Rate_50:', rate_50)
-
-    return abs_error
+    return metrics['median']['abs_error']  # Return metric from a specific method if needed
 
 
 if __name__ == '__main__':
@@ -153,8 +159,9 @@ if __name__ == '__main__':
         config=opt
     )
     checkpoint_path = os.path.join('./model/ntu_syn.pth')
-    accuracy = test(checkpoint_path)
-    print('Accuracy', accuracy)
+    metrics = test(checkpoint_path)
+    for method, method_metrics in metrics.items():
+        print(f'Accuracy({method}): {method_metrics["abs_error"]}')
 
     wandb.finish()
 

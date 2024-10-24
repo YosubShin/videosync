@@ -18,6 +18,40 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 torch.manual_seed(opt.seed)
 
+from scipy.stats import t
+import math
+
+def calculate_margin_of_error(data, confidence_level=0.95):
+    """
+    Calculate the margin of error for the mean of a sample data using t-distribution.
+
+    Args:
+    data (list): list of sample data.
+    confidence_level (float): The confidence level (0 < confidence_level < 1).
+
+    Returns:
+    float: The margin of error for the mean of the sample data.
+    """
+    if not 0 < confidence_level < 1:
+        raise ValueError("Confidence level must be between 0 and 1")
+
+    # Calculate the sample mean and standard deviation
+    std_dev = np.std(data)
+    n = len(data)
+
+    # Calculate the degrees of freedom
+    df = n - 1
+
+    # Determine the critical t-value for the given confidence level
+    # We use two-tailed, hence (1 + confidence_level) / 2
+    alpha = (1 - confidence_level) / 2
+    t_critical = t.ppf(1 - alpha, df)
+
+    # Calculate the margin of error
+    margin_of_error = t_critical * (std_dev / math.sqrt(n))
+
+    return margin_of_error
+
 
 def test(checkpoint_path):
     test_dataset_path = opt.test_dataset.format_map({
@@ -114,8 +148,15 @@ def test(checkpoint_path):
     for method, method_metrics in metrics.items():
         method_metrics['res'].sort()
 
-        method_metrics['abs_error'] /= length
+        # Calculate mean and margin of error for abs_error
+        mean_abs_error = np.mean(method_metrics['res'])
+        abs_error_margin = calculate_margin_of_error(method_metrics['res'])
+
+        method_metrics['abs_error'] = mean_abs_error
         method_metrics['abs_error_std'] = np.std(method_metrics['res'])
+        method_metrics['abs_error_margin'] = abs_error_margin  # New: margin of error
+
+        # Calculate remaining metrics
         method_metrics['rank_1'] /= length
         method_metrics['rank_5'] /= length
         method_metrics['rank_10'] /= length
@@ -130,6 +171,7 @@ def test(checkpoint_path):
         wandb.log({
             f'{method}/abs_error': method_metrics['abs_error'],
             f'{method}/abs_error_std': method_metrics['abs_error_std'],
+            f'{method}/abs_error_margin': method_metrics['abs_error_margin'],  # Log margin of error
             f'{method}/rank_1': method_metrics['rank_1'],
             f'{method}/rank_5': method_metrics['rank_5'],
             f'{method}/rank_10': method_metrics['rank_10'],
@@ -142,12 +184,13 @@ def test(checkpoint_path):
         # Print metrics
         print(f'Method: {method}')
         print(f'Abs_error: {method_metrics["abs_error"]}, Abs_error_std: {method_metrics["abs_error_std"]}, '
-              f'Rank_1: {method_metrics["rank_1"]}, Rank_5: {method_metrics["rank_5"]}, '
+              f'Abs_error_margin: {method_metrics["abs_error_margin"]}')  # New print statement
+        print(f'Rank_1: {method_metrics["rank_1"]}, Rank_5: {method_metrics["rank_5"]}, '
               f'Rank_10: {method_metrics["rank_10"]}')
         print(f'Relative_error: {method_metrics["relative_error"]}, Rate_10: {method_metrics["rate_10"]}, '
               f'Rate_30: {method_metrics["rate_30"]}, Rate_50: {method_metrics["rate_50"]}')
 
-    return metrics['median']['abs_error']  # Return metric from a specific method if needed
+    return metrics
 
 
 if __name__ == '__main__':
